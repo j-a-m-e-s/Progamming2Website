@@ -1,0 +1,1031 @@
+import java.awt.EventQueue;
+
+import java.util.HashMap;
+import java.util.Map;
+
+import javax.swing.JFrame;
+import javax.swing.JButton;
+import javax.swing.JTextField;
+import javax.swing.JLabel;
+import javax.swing.JOptionPane;
+import java.util.List;
+import java.util.ArrayList;
+
+import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
+import java.awt.Font;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.awt.event.KeyAdapter;
+import java.awt.event.KeyEvent;
+import java.awt.event.KeyListener;
+
+import javax.swing.SwingConstants;
+import javax.swing.event.DocumentEvent;
+import javax.swing.event.DocumentListener;
+import javax.swing.JPanel;
+import java.awt.Color;
+import java.awt.GridLayout;
+import java.awt.SystemColor;
+
+
+public class DataGather extends Calculate {
+
+	private static ArrayList<String> arrayAll = new ArrayList<String>();
+	private static Pattern pattern = Pattern.compile("[A-Z][a-z]?|\\d+|\\(|\\)");
+
+	private static int rec1Co =1;
+	private static int rec2Co =1;
+	private static int pro1Co =1;
+	private static int pro2Co =1;
+	private static int store;
+
+	private double r1Mass;
+	private double r2Mass;
+	private double p1Mass;
+	private double p2Mass;
+
+	static List<String> inPArray = new ArrayList<String>();
+
+	private static Map<String, Integer> reactants = new HashMap<String, Integer>();
+	private static Map<String, Integer> products = new HashMap<String, Integer>();
+	private static Map<String, Integer> reactants1 = new HashMap<String, Integer>();
+	private static Map<String, Integer> reactants2 = new HashMap<String, Integer>();
+	private static Map<String, Integer> products1 = new HashMap<String, Integer>();
+	private static Map<String, Integer> products2 = new HashMap<String, Integer>();
+
+	public static void scan(ArrayList<String> compound, Map<String, Integer> map, int coefficent) {
+		boolean inP = false;
+		boolean coeffCheck = false;
+
+		coefficent = 1;
+		int size = compound.size();
+
+		if (size == 0) {
+			return;
+		}
+
+		if (isInteger(compound.get(0)) && coeffCheck == false) {
+			coefficent = Integer.parseInt(compound.get(0));
+			coeffCheck = true;
+
+		}
+		coeffCheck = true;
+		for (int i = 0; i < size; i++) {
+			String element = compound.get(i);
+
+			String nextElement = "";
+			if (compound.get(i).equals("(")) {
+
+				inP = true;
+
+			} else if (compound.get(i).equals(")")) {
+				inP = false;
+				int check = i + 1;
+				if (check < size) {
+					nextElement = compound.get(i + 1);
+					if (isInteger(nextElement)) {
+						store = Integer.parseInt(compound.get(i + 1));
+						for (String str : inPArray) {
+							map.put(str, store * map.get(str));
+
+						}
+						inPArray.clear();
+
+					}
+				}
+
+			}
+
+			if (map.get(element) == null && isInteger(element) == false && compound.get(i).equals("(") == false
+					&& compound.get(i).equals(")") == false) {
+
+				int check = i + 1;
+
+				if (inP == true) {
+
+					inPArray.add(element);
+
+				}
+
+				if (check < size) {
+					nextElement = compound.get(i + 1);
+					if (isInteger(nextElement)) {
+						store = Integer.parseInt(nextElement);
+						map.put(compound.get(i), store);
+					} else {
+						store = 1;
+						map.put(compound.get(i), store);
+
+					}
+				} else {
+					store = 1;
+					map.put(compound.get(i), store);
+				}
+
+			}
+
+			else {
+
+			}
+		}
+
+		Set<String> keySet = map.keySet();
+		for (String key : keySet) {
+			map.put(key, (map.get(key) * coefficent));
+		}
+	}
+
+	public static boolean isInteger(String s) {
+		try {
+			Integer.parseInt(s);
+		} catch (NumberFormatException e) {
+			return false;
+		} catch (NullPointerException e) {
+			return false;
+		}
+
+		return true;
+	}
+
+	public static void split(String data, List<String> array) {
+		Matcher match = pattern.matcher(data);
+
+		while (match.find()) {
+
+			array.add(match.group());
+
+		}
+
+	}
+
+	public boolean mapsAreEqual() {
+
+		try {
+			for (String k : products.keySet()) {
+				if (reactants.get(k) != products.get(k)) {
+					return false;
+				}
+			}
+			for (String y : reactants.keySet()) {
+				if (!products.containsKey(y)) {
+					return false;
+				}
+			}
+		} catch (NullPointerException np) {
+			return false;
+		}
+		return true;
+	}
+
+	public void gatherInfo(String pro1, String pro2, String rec1, String rec2) {
+
+		DataGather.split(rec1, arrayAll);
+		DataGather.scan(arrayAll, reactants1, rec1Co);
+		arrayAll.clear();
+		DataGather.split(rec2, arrayAll);
+		DataGather.scan(arrayAll, reactants2, rec2Co);
+		arrayAll.clear();
+		DataGather.split(pro1, arrayAll);
+		DataGather.scan(arrayAll, products1, pro1Co);
+		arrayAll.clear();
+		DataGather.split(pro2, arrayAll);
+		DataGather.scan(arrayAll, products2, pro2Co);
+		arrayAll.clear();
+
+		reactants = Stream.concat(reactants1.entrySet().stream(), reactants2.entrySet().stream())
+				.collect(Collectors.groupingBy(Map.Entry::getKey, Collectors.summingInt(Map.Entry::getValue)));
+		products = Stream.concat(products1.entrySet().stream(), products2.entrySet().stream())
+				.collect(Collectors.groupingBy(Map.Entry::getKey, Collectors.summingInt(Map.Entry::getValue)));
+		Set<String> keySet = reactants.keySet();
+		for (String key : keySet) {
+			int value = reactants.get(key);
+			System.out.println(key + " " + value);
+		}
+		Set<String> keySet2 = products.keySet();
+		for (String key : keySet2) {
+			int value = products.get(key);
+			System.out.println(key + " " + value);
+		}
+
+	}
+
+	public double gatherAmountMole(double amount, boolean type, int part) {
+		r1Mass = findMassCompound(reactants1);
+		r2Mass = findMassCompound(reactants2);
+		p1Mass = findMassCompound(products1);
+		p2Mass = findMassCompound(products2);
+		double mass;
+		if (type == true) {
+			if (part == 2) {
+
+				mass = gramToMole(amount, r1Mass);
+				return mass;
+			}
+
+			else {
+
+				mass = gramToMole(amount, r2Mass);
+				return mass;
+			}
+
+		}
+
+		else {
+			if (part == 1) {
+
+				mass = amount;
+				return mass;
+			}
+
+			else {
+
+				mass = amount;
+				return mass;
+
+			}
+
+		}
+	}
+
+	public double findProductMole(double amount, int recCo, int proCo) {
+		double answer = 0;
+
+		answer = amount * (proCo / recCo);
+
+		return answer;
+	}
+
+	public double findProductGrams(double amount, double proMass, int recCo, int proCo) {
+		double answer = 0;
+		answer = amount * (proCo / recCo) * proMass;
+		return answer;
+	}
+	
+	public int getRec1Co(){
+		return rec1Co;
+		
+	}
+	public int getRec2Co(){
+		return rec2Co;
+		
+	}
+	public int getPro1Co(){
+		return pro1Co;
+		
+	}
+	public int getPro2Co(){
+		return pro2Co;
+		
+	}
+	public double getPro1Mass(){
+		return p1Mass;
+		
+	}
+	public double getPro2Mass(){
+		return p2Mass;
+		
+	}
+	
+
+}
+
+public class Calculate extends PeriodicTable {
+
+	public double moleToGram(double amount, double mass) {
+
+			double total = amount * mass;
+			return total;
+	}
+
+	public double gramToMole(double amount, double mass) {
+
+	
+			double total = (amount / mass);
+			return total;
+
+	}
+	
+	public double findMassCompound(Map<String,Integer> map){
+		double mass = 0;
+		Set<String> keySet = map.keySet();
+		for (String key : keySet) {
+			int value = map.get(key);
+			mass += findMoleMass(key)*value;
+	
+		}
+		return mass;
+	}
+
+
+}
+
+public class Interface extends JFrame implements ActionListener {
+	private JTextField react2Moles;
+	private JTextField react1Mole;
+	private JTextField react2Grams;
+	private JTextField react1Grams;
+	private JTextField reactant2;
+	private JTextField reactant1;
+	private JTextField product2;
+	private JTextField product1;
+	private JLabel lblMoles;
+	private JLabel lblGrams;
+	private JLabel lblStochiometeryCalculator;
+	private JButton calculate;
+	private JLabel pro1MAnswer;
+	private JLabel pro1GAnswer;
+	private JLabel pro2MAnswer;
+	private JLabel pro2GAnswer;
+	private JLabel lblEnterCompoundAmmount;
+
+	public Interface() {
+		getContentPane().setBackground(Color.WHITE);
+		DataGather dataGather = new DataGather();
+		getContentPane().setLayout(null);
+
+		lblStochiometeryCalculator = new JLabel("Stochiometery Calculator");
+		lblStochiometeryCalculator.setHorizontalAlignment(SwingConstants.CENTER);
+		lblStochiometeryCalculator.setFont(new Font("Tahoma", Font.PLAIN, 20));
+		lblStochiometeryCalculator.setBounds(193, 11, 284, 25);
+		getContentPane().add(lblStochiometeryCalculator);
+
+		JLabel ReactionEquation = new JLabel("Enter a Reaction Equation");
+		ReactionEquation.setHorizontalAlignment(SwingConstants.CENTER);
+		ReactionEquation.setFont(new Font("Tahoma", Font.BOLD, 11));
+		ReactionEquation.setBounds(252, 47, 167, 20);
+		getContentPane().add(ReactionEquation);
+
+		JLabel Arrow = new JLabel("-->");
+		Arrow.setFont(new Font("Tahoma", Font.BOLD, 14));
+		Arrow.setHorizontalAlignment(SwingConstants.CENTER);
+		Arrow.setBounds(307, 81, 46, 14);
+		getContentPane().add(Arrow);
+
+		JLabel firstPlusSign = new JLabel("+");
+		firstPlusSign.setFont(new Font("Tahoma", Font.BOLD, 12));
+		firstPlusSign.setHorizontalAlignment(SwingConstants.CENTER);
+		firstPlusSign.setBounds(151, 81, 46, 14);
+		getContentPane().add(firstPlusSign);
+
+		JLabel secondPlusSign = new JLabel("+");
+		secondPlusSign.setHorizontalAlignment(SwingConstants.CENTER);
+		secondPlusSign.setFont(new Font("Tahoma", Font.BOLD, 12));
+		secondPlusSign.setBounds(476, 81, 46, 14);
+		getContentPane().add(secondPlusSign);
+
+		JPanel reactantGivenPanel = new JPanel();
+		reactantGivenPanel.setBackground(Color.LIGHT_GRAY);
+		reactantGivenPanel.setBounds(10, 157, 632, 170);
+		getContentPane().add(reactantGivenPanel);
+		reactantGivenPanel.setLayout(null);
+		reactantGivenPanel.setVisible(false);
+
+		react2Moles = new JTextField();
+		react2Moles.setBounds(182, 48, 100, 20);
+		reactantGivenPanel.add(react2Moles);
+		react2Moles.setColumns(10);
+		react2Moles.getDocument().addDocumentListener(new DocumentListener() {
+			public void changedUpdate(DocumentEvent e) {
+				changed();
+			}
+
+			public void removeUpdate(DocumentEvent e) {
+				changed();
+			}
+
+			public void insertUpdate(DocumentEvent e) {
+				changed();
+			}
+
+			public void changed() {
+				if (react2Moles.getText().equals("")) {
+					react2Grams.setEditable(true);
+					react1Mole.setEditable(true);
+					react1Grams.setEditable(true);
+				} else {
+					react2Grams.setEditable(false);
+					react1Mole.setEditable(false);
+					react1Grams.setEditable(false);
+				}
+
+			}
+		});
+
+		react2Grams = new JTextField();
+		react2Grams.setBounds(182, 79, 100, 20);
+		reactantGivenPanel.add(react2Grams);
+		react2Grams.setColumns(10);
+		react2Grams.getDocument().addDocumentListener(new DocumentListener() {
+			public void changedUpdate(DocumentEvent e) {
+				changed();
+			}
+
+			public void removeUpdate(DocumentEvent e) {
+				changed();
+			}
+
+			public void insertUpdate(DocumentEvent e) {
+				changed();
+			}
+
+			public void changed() {
+				if (react2Grams.getText().equals("")) {
+					react2Moles.setEditable(true);
+					react1Grams.setEditable(true);
+					react1Mole.setEditable(true);
+				} else {
+					react2Moles.setEditable(false);
+					react1Grams.setEditable(false);
+					react1Mole.setEditable(false);
+				}
+
+			}
+		});
+
+		react1Grams = new JTextField();
+		react1Grams.setBounds(52, 79, 100, 20);
+		reactantGivenPanel.add(react1Grams);
+		react1Grams.setColumns(10);
+		react1Grams.getDocument().addDocumentListener(new DocumentListener() {
+			public void changedUpdate(DocumentEvent e) {
+				changed();
+			}
+
+			public void removeUpdate(DocumentEvent e) {
+				changed();
+			}
+
+			public void insertUpdate(DocumentEvent e) {
+				changed();
+			}
+
+			public void changed() {
+				if (react1Grams.getText().equals("")) {
+					react1Mole.setEditable(true);
+					react2Moles.setEditable(true);
+					react2Grams.setEditable(true);
+				} else {
+					react1Mole.setEditable(false);
+					react2Moles.setEditable(false);
+					react2Grams.setEditable(false);
+				}
+
+			}
+		});
+
+		react1Mole = new JTextField();
+		react1Mole.setBounds(52, 48, 100, 20);
+		reactantGivenPanel.add(react1Mole);
+		react1Mole.setColumns(10);
+		react1Mole.getDocument().addDocumentListener(new DocumentListener() {
+			public void changedUpdate(DocumentEvent e) {
+				changed();
+			}
+
+			public void removeUpdate(DocumentEvent e) {
+				changed();
+			}
+
+			public void insertUpdate(DocumentEvent e) {
+				changed();
+			}
+
+			public void changed() {
+				if (react1Mole.getText().equals("")) {
+					react1Grams.setEditable(true);
+					react2Moles.setEditable(true);
+					react2Grams.setEditable(true);
+				} else {
+					react1Grams.setEditable(false);
+					react2Moles.setEditable(false);
+					react2Grams.setEditable(false);
+				}
+
+			}
+		});
+
+		lblMoles = new JLabel("Moles");
+		lblMoles.setFont(new Font("Tahoma", Font.BOLD, 11));
+		lblMoles.setBounds(10, 51, 37, 14);
+		reactantGivenPanel.add(lblMoles);
+
+		lblGrams = new JLabel("Grams");
+		lblGrams.setFont(new Font("Tahoma", Font.BOLD, 11));
+		lblGrams.setBounds(10, 82, 37, 14);
+		reactantGivenPanel.add(lblGrams);
+
+		calculate = new JButton("Calculate");
+		calculate.setFont(new Font("Tahoma", Font.BOLD, 12));
+		calculate.setBounds(516, 130, 106, 29);
+		reactantGivenPanel.add(calculate);
+
+		pro1MAnswer = new JLabel("");
+		pro1MAnswer.setForeground(Color.BLACK);
+		pro1MAnswer.setBackground(Color.WHITE);
+		pro1MAnswer.setFont(new Font("Tahoma", Font.BOLD, 12));
+		pro1MAnswer.setHorizontalAlignment(SwingConstants.CENTER);
+		pro1MAnswer.setToolTipText("");
+		pro1MAnswer.setBounds(380, 51, 89, 14);
+		reactantGivenPanel.add(pro1MAnswer);
+
+		pro1GAnswer = new JLabel("");
+		pro1GAnswer.setFont(new Font("Tahoma", Font.BOLD, 12));
+		pro1GAnswer.setHorizontalAlignment(SwingConstants.CENTER);
+		pro1GAnswer.setBounds(380, 82, 89, 14);
+		reactantGivenPanel.add(pro1GAnswer);
+
+		pro2MAnswer = new JLabel("");
+		pro2MAnswer.setToolTipText("");
+		pro2MAnswer.setHorizontalAlignment(SwingConstants.CENTER);
+		pro2MAnswer.setFont(new Font("Tahoma", Font.BOLD, 12));
+		pro2MAnswer.setBounds(520, 50, 89, 14);
+		reactantGivenPanel.add(pro2MAnswer);
+
+		pro2GAnswer = new JLabel("");
+		pro2GAnswer.setToolTipText("");
+		pro2GAnswer.setHorizontalAlignment(SwingConstants.CENTER);
+		pro2GAnswer.setFont(new Font("Tahoma", Font.BOLD, 12));
+		pro2GAnswer.setBounds(520, 82, 89, 14);
+		reactantGivenPanel.add(pro2GAnswer);
+
+		lblEnterCompoundAmmount = new JLabel("Enter Compound Amount");
+		lblEnterCompoundAmmount.setFont(new Font("Tahoma", Font.BOLD, 12));
+		lblEnterCompoundAmmount.setBounds(243, 11, 176, 14);
+		reactantGivenPanel.add(lblEnterCompoundAmmount);
+
+		calculate.addActionListener(new ActionListener() {
+
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				double send = 0;
+				boolean rec = false;
+				int part = 0;
+
+				/*
+				 * try {
+				 * 
+				 * Double.parseDouble(react1Mole.getText());
+				 * Double.parseDouble(react2Moles.getText());
+				 * Double.parseDouble(react1Grams.getText());
+				 * Double.parseDouble(react2Grams.getText()); } catch
+				 * (NumberFormatException a) {
+				 * JOptionPane.showMessageDialog(null, "Please enter a number."
+				 * ); return; } catch (NullPointerException a) {
+				 * JOptionPane.showMessageDialog(null, "Please enter a number."
+				 * ); return; }
+				 */
+				if (react1Mole.getText().equals("")) {
+
+					if (react1Grams.getText().equals("")) {
+
+						if (react2Moles.getText().equals("")) {
+
+							if (react2Grams.getText().equals("")) {
+
+								JOptionPane.showMessageDialog(null, "Please enter a amount.");
+
+							}
+
+							else {
+								send = Double.parseDouble(react2Grams.getText());
+								rec = true;
+								part = 4;
+							}
+
+						} else {
+							send = Double.parseDouble(react2Moles.getText());
+							rec = false;
+							part = 3;
+						}
+
+					} else {
+						send = Double.parseDouble(react1Grams.getText());
+						rec = true;
+						part = 2;
+					}
+
+				} else {
+
+					send = Double.parseDouble(react1Mole.getText());
+					rec = false;
+					part = 1;
+				}
+
+				double amount = dataGather.gatherAmountMole(send, rec, part);
+
+				if (product1.getText().isEmpty() == false) {
+					if (part == 1 || part == 2) {
+						pro1MAnswer.setText(Double.toString(
+								dataGather.findProductMole(amount, dataGather.getRec1Co(), dataGather.getPro1Co())));
+						pro1GAnswer.setText(Double.toString(dataGather.findProductGrams(amount,
+								dataGather.getPro1Mass(), dataGather.getRec1Co(), dataGather.getPro1Co())));
+					} else {
+						pro1MAnswer.setText(Double.toString(
+								dataGather.findProductMole(amount, dataGather.getRec2Co(), dataGather.getPro1Co())));
+						pro1GAnswer.setText(Double.toString(dataGather.findProductGrams(amount,
+								dataGather.getPro1Mass(), dataGather.getRec2Co(), dataGather.getPro1Co())));
+					}
+				} else if (product2.getText().isEmpty() == false) {
+					if (part == 3 || part == 4) {
+						pro2MAnswer.setText(Double.toString(
+								dataGather.findProductMole(amount, dataGather.getRec2Co(), dataGather.getPro2Co())));
+						pro2GAnswer.setText(Double.toString(dataGather.findProductGrams(amount,
+								dataGather.getPro2Mass(), dataGather.getRec2Co(), dataGather.getPro2Co())));
+
+					} else {
+						pro2MAnswer.setText(Double.toString(
+								dataGather.findProductMole(amount, dataGather.getRec2Co(), dataGather.getPro2Co())));
+						pro2GAnswer.setText(Double.toString(dataGather.findProductGrams(amount,
+								dataGather.getPro2Mass(), dataGather.getRec2Co(), dataGather.getPro2Co())));
+
+					}
+
+				} else {
+
+					JOptionPane.showMessageDialog(null, "There is no product");
+					return;
+				}
+
+			}
+		});
+		react1Mole.addActionListener(this);
+		react1Mole.addKeyListener(new KeyAdapter() {
+			@Override
+			public void keyTyped(KeyEvent e) {
+				if (react1Mole.getText().length() >= 15) // limit to 15
+															// characters
+					e.consume();
+			}
+		});
+		react1Grams.addActionListener(this);
+		react1Grams.addKeyListener(new KeyAdapter() {
+			@Override
+			public void keyTyped(KeyEvent e) {
+				if (react1Grams.getText().length() >= 15) // limit to 15
+															// characters
+					e.consume();
+			}
+		});
+		react2Grams.addActionListener(this);
+		react2Grams.addKeyListener(new KeyAdapter() {
+			@Override
+			public void keyTyped(KeyEvent e) {
+				if (react2Grams.getText().length() >= 15) // limit to 15
+															// characters
+					e.consume();
+			}
+		});
+		react2Moles.addActionListener(this);
+		react2Moles.addKeyListener(new KeyAdapter() {
+			@Override
+			public void keyTyped(KeyEvent e) {
+				if (react2Moles.getText().length() >= 15) // limit to 15
+															// characters
+					e.consume();
+			}
+		});
+
+		reactant1 = new JTextField();
+		reactant1.setColumns(10);
+		reactant1.setBounds(56, 78, 100, 20);
+		getContentPane().add(reactant1);
+		reactant1.addActionListener(this);
+		reactant1.addKeyListener(new KeyAdapter() {
+			@Override
+			public void keyTyped(KeyEvent e) {
+				if (reactant1.getText().length() >= 15) // limit to 15
+														// characters
+					e.consume();
+			}
+		});
+		reactant1.getDocument().addDocumentListener(new DocumentListener() {
+
+			public void changedUpdate(DocumentEvent e) {
+				back();
+			}
+
+			public void insertUpdate(DocumentEvent e) {
+				back();
+			}
+
+			public void removeUpdate(DocumentEvent e) {
+				back();
+			}
+
+			public void back() {
+				reactantGivenPanel.setVisible(false);
+			}
+		});
+
+		reactant2 = new JTextField();
+		reactant2.setColumns(10);
+		reactant2.setBounds(193, 78, 100, 20);
+		getContentPane().add(reactant2);
+		reactant2.addActionListener(this);
+		reactant2.addKeyListener(new KeyAdapter() {
+			@Override
+			public void keyTyped(KeyEvent e) {
+				if (reactant1.getText().length() >= 15) // limit to 15
+														// characters
+					e.consume();
+			}
+		});
+		reactant2.getDocument().addDocumentListener(new DocumentListener() {
+
+			public void changedUpdate(DocumentEvent e) {
+				back();
+			}
+
+			public void insertUpdate(DocumentEvent e) {
+				back();
+			}
+
+			public void removeUpdate(DocumentEvent e) {
+				back();
+			}
+
+			public void back() {
+				reactantGivenPanel.setVisible(false);
+			}
+		});
+		product1 = new JTextField();
+		product1.setColumns(10);
+		product1.setBounds(380, 78, 100, 20);
+		getContentPane().add(product1);
+		product1.addActionListener(this);
+		product1.addKeyListener(new KeyAdapter() {
+			@Override
+			public void keyTyped(KeyEvent e) {
+				if (reactant1.getText().length() >= 15) // limit to 15
+														// characters
+					e.consume();
+			}
+		});
+		product1.getDocument().addDocumentListener(new DocumentListener() {
+
+			public void changedUpdate(DocumentEvent e) {
+				back();
+			}
+
+			public void insertUpdate(DocumentEvent e) {
+				back();
+			}
+
+			public void removeUpdate(DocumentEvent e) {
+				back();
+			}
+
+			public void back() {
+				reactantGivenPanel.setVisible(false);
+			}
+		});
+
+		product2 = new JTextField();
+		product2.setColumns(10);
+		product2.setBounds(520, 78, 100, 20);
+		getContentPane().add(product2);
+		product2.addActionListener(this);
+		product2.addKeyListener(new KeyAdapter() {
+			@Override
+			public void keyTyped(KeyEvent e) {
+				if (reactant1.getText().length() >= 15) // limit to 15
+														// characters
+					e.consume();
+			}
+		});
+		product2.getDocument().addDocumentListener(new DocumentListener() {
+
+			public void changedUpdate(DocumentEvent e) {
+				back();
+			}
+
+			public void insertUpdate(DocumentEvent e) {
+				back();
+			}
+
+			public void removeUpdate(DocumentEvent e) {
+				back();
+			}
+
+			public void back() {
+				reactantGivenPanel.setVisible(false);
+			}
+		});
+
+		JButton btnNext = new JButton("Next");
+		btnNext.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent arg0) {
+				String reac1 = reactant1.getText();
+				String reac2 = reactant2.getText();
+				String prod1 = product1.getText();
+				String prod2 = product2.getText();
+				dataGather.gatherInfo(prod1, prod2, reac1, reac2);
+				if (dataGather.mapsAreEqual() == true) {
+
+					reactantGivenPanel.setVisible(true);
+				} else {
+					JOptionPane.showMessageDialog(null, "The equation is incorrect.");
+
+				}
+
+			}
+		});
+		btnNext.setBounds(287, 123, 89, 23);
+		getContentPane().add(btnNext);
+
+		JButton clearAll = new JButton("Clear");
+		clearAll.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent arg0) {
+
+				reactant1.setText("");
+				reactant2.setText("");
+				product1.setText("");
+				product2.setText("");
+				reactantGivenPanel.setVisible(false);
+				pro1MAnswer.setText("");
+				pro1GAnswer.setText("");
+				pro2MAnswer.setText("");
+				pro2GAnswer.setText("");
+				react1Mole.setText("");
+				react1Grams.setText("");
+				react2Moles.setText("");
+				react2Grams.setText("");
+			}
+		});
+		clearAll.setBounds(531, 16, 89, 23);
+		getContentPane().add(clearAll);
+
+	}
+
+	@Override
+	public void actionPerformed(ActionEvent e) {
+		// TODO Auto-generated method stub
+
+	}
+}
+
+public class PeriodicTable {
+	public static Map<String, Double> elements = new HashMap<String, Double>();
+
+	public PeriodicTable() {
+		elements.put("H", 1.01);
+		elements.put("He", 4.00);
+		elements.put("Li", 6.94);
+		elements.put("Be", 9.01);
+		elements.put("B", 10.81);
+		elements.put("C", 12.01);
+		elements.put("N", 14.01);
+		elements.put("O", 16.00);
+		elements.put("F", 19.00);
+		elements.put("Ne", 20.18);
+		elements.put("Na", 22.99);
+		elements.put("Mg", 24.31);
+		elements.put("Al", 26.98);
+		elements.put("Si", 28.09);
+		elements.put("P", 30.97);
+		elements.put("S", 32.07);
+		elements.put("Cl", 35.45);
+		elements.put("Ar", 39.95);
+		elements.put("K", 39.10);
+		elements.put("Ca", 40.08);
+		elements.put("Sc", 44.96);
+		elements.put("Ti", 47.87);
+		elements.put("T", 50.94);
+		elements.put("Cr", 52.00);
+		elements.put("Mn", 54.94);
+		elements.put("Fe", 55.85);
+		elements.put("Co", 58.93);
+		elements.put("Ni", 58.69);
+		elements.put("Cu", 63.55);
+		elements.put("Zn", 65.38);
+		elements.put("Ga", 69.72);
+		elements.put("Ge", 72.63);
+		elements.put("As", 74.92);
+		elements.put("Se", 78.96);
+		elements.put("Br", 79.90);
+		elements.put("Kr", 83.90);
+		elements.put("Rb", 85.47);
+		elements.put("Sr", 87.62);
+		elements.put("Y", 88.91);
+		elements.put("Zr", 91.22);
+		elements.put("Nb", 92.91);
+		elements.put("Mo", 95.96);
+		elements.put("Tc", 98.00);
+		elements.put("Ru", 101.07);
+		elements.put("Rh", 102.91);
+		elements.put("Pd", 106.42);
+		elements.put("Ag", 107.87);
+		elements.put("Cd", 112.41);
+		elements.put("In", 114.82);
+		elements.put("Sn", 118.71);
+		elements.put("Sb", 121.76);
+		elements.put("Te", 127.60);
+		elements.put("I", 126.90);
+		elements.put("Xe", 131.29);
+		elements.put("Cs", 131.91);
+		elements.put("Ba", 137.33);
+		elements.put("La", 138.91);
+		elements.put("Hf", 178.49);
+		elements.put("Ta", 180.95);
+		elements.put("W", 183.84);
+		elements.put("Re", 186.21);
+		elements.put("Os", 190.23);
+		elements.put("Ir", 192.22);
+		elements.put("Pt", 195.08);
+		elements.put("Au", 196.97);
+		elements.put("Hg", 200.59);
+		elements.put("Tl", 204.38);
+		elements.put("Pb", 207.20);
+		elements.put("Bi", 208.98);
+		elements.put("Po", 209.00);
+		elements.put("At", 210.00);
+		elements.put("Rn", 222.00);
+		elements.put("Fr", 223.00);
+		elements.put("Ra", 226.00);
+		elements.put("Ac", 227.00);
+		elements.put("Rf", 267.00);
+		elements.put("Db", 268.00);
+		elements.put("Sg", 269.00);
+		elements.put("Bh", 270.00);
+		elements.put("Hs", 269.00);
+		elements.put("Mt", 278.00);
+		elements.put("Ds", 281.00);
+		elements.put("Rg", 281.00);
+		elements.put("Cn", 285.00);
+		elements.put("Uut", 286.00);
+		elements.put("Uuq", 289.00);
+		elements.put("Uup", 288.00);
+		elements.put("Uuh", 293.00);
+		elements.put("Uus", 294.00);
+		elements.put("Uuo", 294.00);
+		elements.put("Ce", 140.12);
+		elements.put("Pr", 140.91);
+		elements.put("Nd", 144.24);
+		elements.put("Pm", 145.00);
+		elements.put("Sm", 150.36);
+		elements.put("Eu", 151.96);
+		elements.put("Gd", 157.25);
+		elements.put("Tb", 158.93);
+		elements.put("Dy", 162.50);
+		elements.put("Ho", 164.93);
+		elements.put("Er", 167.26);
+		elements.put("Tm", 168.93);
+		elements.put("Yb", 173.05);
+		elements.put("Lu", 174.97);
+		elements.put("Th", 232.04);
+		elements.put("Pa", 231.04);
+		elements.put("U", 238.03);
+		elements.put("Np", 237.00);
+		elements.put("Pu", 244.00);
+		elements.put("Am", 243.00);
+		elements.put("Cm", 247.00);
+		elements.put("Bk", 247.00);
+		elements.put("Cf", 251.00);
+		elements.put("Es", 252.00);
+		elements.put("Fm", 257.00);
+		elements.put("Md", 258.00);
+		elements.put("No", 259.00);
+		elements.put("Lr", 262.00);
+
+	}
+
+	public static double findMoleMass(String element) {
+
+		int error = 500;
+		if (elements.get(element) == null) {
+
+			return error;
+
+		} else {
+			double mass = elements.get(element);
+			return mass;
+		}
+	}
+
+}
+
+
+public class Start {
+
+	public static void main(String[] args) {
+
+		EventQueue.invokeLater(new Runnable() {
+			public void run() {
+				try {
+					Interface frame = new Interface();
+					frame.setSize(670, 375);
+					frame.setVisible(true);
+				} catch (Exception e) {
+					e.printStackTrace();
+				}
+			}
+		});
+
+	}
+
+}
