@@ -859,6 +859,10 @@ public class Interface extends JFrame implements ActionListener {
 		});
 		clearAll.setBounds(531, 16, 89, 23);
 		getContentPane().add(clearAll);
+		
+		JLabel lblExampleh = new JLabel("Example : 2H2 + O2 --> 2H2O");
+		lblExampleh.setBounds(31, 25, 153, 14);
+		getContentPane().add(lblExampleh);
 
 	}
 
@@ -868,6 +872,7 @@ public class Interface extends JFrame implements ActionListener {
 
 	}
 }
+
 
 public class PeriodicTable {
 	public static Map<String, Double> elements = new HashMap<String, Double>();
